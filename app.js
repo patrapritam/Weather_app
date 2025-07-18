@@ -1,377 +1,40 @@
-let locationChart;
+
+// Temperature Dashboard with Real API Integration
+let temperatureChart;
 let temperatureData = [];
-let userLocation = null;
-let temperatureThresholds = {
-  high: 35,
-  low: 15,
-  enabled: true
-};
+let lastNotificationTime = {};
 
-// Function to show notification
-function showNotification(title, message, type = 'info') {
-  // Create notification element
-  const notification = document.createElement('div');
-  notification.className = `notification ${type}`;
-  notification.innerHTML = `
-    <div class="notification-content">
-      <div class="notification-title">${title}</div>
-      <div class="notification-message">${message}</div>
-      <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
-    </div>
-  `;
-  
-  // Add to page
-  document.body.appendChild(notification);
-  
-  // Auto-remove after 5 seconds
-  setTimeout(() => {
-    if (notification.parentElement) {
-      notification.remove();
-    }
-  }, 5000);
-  
-  // Show browser notification if supported
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, {
-      body: message,
-      icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiM2NjdlZWEiLz4KPHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSIxNiIgeT0iMTYiPgo8cGF0aCBkPSJNMTIgMkM2LjQ4IDIgMiA2LjQ4IDIgMTJzNC40OCAxMCAxMCAxMCAxMC00LjQ4IDEwLTEwUzE3LjUyIDIgMTIgMnptLTIgMTVsLTUtNSAxLjQxLTEuNDFMMTAgMTQuMTdsNy41OS03LjU5TDE5IDhsLTkgOXoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo8L3N2Zz4K'
-    });
-  }
-}
+// API Configuration
+const API_KEY = 'ec85cc05f2bb1af55811c674d2ae3095';
 
-// Function to check temperature thresholds
-function checkTemperatureThresholds(temperature) {
-  if (!temperatureThresholds.enabled) return;
-  
-  if (temperature >= temperatureThresholds.high) {
-    showNotification(
-      '🔥 High Temperature Alert',
-      `Temperature is ${temperature}°C (above ${temperatureThresholds.high}°C threshold)`,
-      'warning'
-    );
-  } else if (temperature <= temperatureThresholds.low) {
-    showNotification(
-      '❄️ Low Temperature Alert',
-      `Temperature is ${temperature}°C (below ${temperatureThresholds.low}°C threshold)`,
-      'warning'
-    );
-  }
-}
-
-// Function to get clothing recommendation
-function getClothingRecommendation(temperature) {
-  if (temperature >= 30) {
-    return "👕 Light clothing recommended - cotton t-shirt, shorts, sandals";
-  } else if (temperature >= 25) {
-    return "👔 Comfortable clothing - light shirt, pants, comfortable shoes";
-  } else if (temperature >= 20) {
-    return "🧥 Light jacket recommended - long sleeves, light jacket";
-  } else if (temperature >= 15) {
-    return "🧥 Warm clothing - sweater, jacket, closed shoes";
-  } else if (temperature >= 10) {
-    return "🧥 Heavy clothing - warm jacket, scarf, gloves";
-  } else {
-    return "🥶 Very warm clothing - heavy coat, hat, gloves, warm boots";
-  }
-}
-
-// Function to get activity recommendation
-function getActivityRecommendation(temperature) {
-  if (temperature >= 35) {
-    return "🏠 Stay indoors or in shade. Avoid outdoor activities.";
-  } else if (temperature >= 25) {
-    return "🏃 Perfect for outdoor activities - jogging, cycling, sports";
-  } else if (temperature >= 15) {
-    return "🚶 Good for walking, light outdoor activities";
-  } else if (temperature >= 5) {
-    return "🧥 Dress warmly for outdoor activities";
-  } else {
-    return "🏠 Too cold for most outdoor activities";
-  }
-}
-
-// Function to request notification permission
-function requestNotificationPermission() {
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
-}
-
-// Function to create temperature chart
-function createTemperatureChart(data) {
-  const ctx = document.getElementById('temperatureChart').getContext('2d');
-
-  const labels = data.map(item => {
-    const date = new Date(item.timestamp);
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  });
-
-  const temperatures = data.map(item => item.temperature);
-
-  if (locationChart) {
-    locationChart.destroy();
-  }
-
-  locationChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Temperature (°C)',
-        data: temperatures,
-        borderColor: '#667eea',
-        backgroundColor: 'rgba(102, 126, 234, 0.1)',
-        borderWidth: 3,
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: '#667eea',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointRadius: 6,
-        pointHoverRadius: 8
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top'
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: false,
-          title: {
-            display: true,
-            text: 'Temperature (°C)'
-          },
-          grid: {
-            color: 'rgba(0,0,0,0.1)'
-          }
-        },
-        x: {
-          title: {
-            display: true,
-            text: 'Time'
-          },
-          grid: {
-            color: 'rgba(0,0,0,0.1)'
-          }
-        }
-      }
-    }
-  });
-}
-
-// Function to display location info
-function displayLocationInfo(locationName) {
-  const locationNameEl = document.getElementById('location-name');
-  const sensorId = document.getElementById('sensor-id');
-  
-  locationNameEl.textContent = locationName;
-  sensorId.textContent = `Temperature Sensor - ${locationName}`;
-}
-
-// Function to display temperature data cards
-function displayDataCards(data) {
-  const dataContainer = document.getElementById('data-container');
-  dataContainer.innerHTML = '';
-
-  const sortedData = [...data].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  sortedData.forEach((item, index) => {
-    const card = document.createElement('div');
-    card.className = 'reading-card';
-
-    if (index === 0) {
-      card.style.cssText = `
-        background: linear-gradient(45deg, #4CAF50, #45a049);
-        color: white;
-        animation: pulse 1s ease-in-out;
-      `;
-    }
-
-    const temperature = document.createElement('div');
-    temperature.className = 'temperature';
-    temperature.innerHTML = `<strong>Temperature:</strong> ${item.temperature}°C`;
-
-    const timestamp = document.createElement('div');
-    timestamp.className = 'timestamp';
-    const date = new Date(item.timestamp);
-    timestamp.textContent = date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      timeZoneName: 'short'
-    });
-
-    if (index === 0) {
-      const liveBadge = document.createElement('span');
-      liveBadge.style.cssText = `
-        background: #FF5722;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 10px;
-        font-size: 0.7em;
-        margin-left: 10px;
-        animation: blink 1s infinite;
-      `;
-      liveBadge.textContent = 'LIVE';
-      temperature.appendChild(liveBadge);
-
-      // Add recommendations for latest reading
-      const recommendations = document.createElement('div');
-      recommendations.className = 'recommendations';
-      recommendations.innerHTML = `
-        <div class="recommendation-item">
-          <strong>👕 Clothing:</strong> ${getClothingRecommendation(item.temperature)}
-        </div>
-        <div class="recommendation-item">
-          <strong>🏃 Activity:</strong> ${getActivityRecommendation(item.temperature)}
-        </div>
-      `;
-      card.appendChild(recommendations);
-    }
-
-    card.appendChild(temperature);
-    card.appendChild(timestamp);
-    dataContainer.appendChild(card);
-  });
-}
-
-// Function to create settings panel
-function createSettingsPanel() {
-  const settingsPanel = document.createElement('div');
-  settingsPanel.id = 'settings-panel';
-  settingsPanel.style.display = 'none';
-  settingsPanel.innerHTML = `
-    <div class="settings-content">
-      <h3>⚙️ Temperature Alert Settings</h3>
-      <div class="settings-group">
-        <label>
-          <input type="checkbox" id="alerts-enabled" ${temperatureThresholds.enabled ? 'checked' : ''}>
-          Enable Temperature Alerts
-        </label>
-      </div>
-      <div class="settings-group">
-        <label>🔥 High Temperature Alert (°C):</label>
-        <input type="number" id="high-threshold" value="${temperatureThresholds.high}" min="0" max="50">
-      </div>
-      <div class="settings-group">
-        <label>❄️ Low Temperature Alert (°C):</label>
-        <input type="number" id="low-threshold" value="${temperatureThresholds.low}" min="-20" max="30">
-      </div>
-      <div class="settings-buttons">
-        <button onclick="saveSettings()">Save Settings</button>
-        <button onclick="closeSettings()">Cancel</button>
-      </div>
-    </div>
-  `;
-  
-  document.body.appendChild(settingsPanel);
-}
-
-// Function to save settings
-function saveSettings() {
-  temperatureThresholds.enabled = document.getElementById('alerts-enabled').checked;
-  temperatureThresholds.high = parseFloat(document.getElementById('high-threshold').value);
-  temperatureThresholds.low = parseFloat(document.getElementById('low-threshold').value);
-  
-  // Save to localStorage
-  localStorage.setItem('temperatureThresholds', JSON.stringify(temperatureThresholds));
-  
-  showNotification('✅ Settings Saved', 'Temperature alert settings have been updated');
-  closeSettings();
-}
-
-// Function to close settings
-function closeSettings() {
-  document.getElementById('settings-panel').style.display = 'none';
-}
-
-// Function to load settings from localStorage
-function loadSettings() {
-  const saved = localStorage.getItem('temperatureThresholds');
-  if (saved) {
-    temperatureThresholds = { ...temperatureThresholds, ...JSON.parse(saved) };
-  }
-}
-
-// Function to get location name from coordinates
-async function getLocationName(lat, lon) {
+// Function to load data from sensors.json as fallback
+async function loadSensorData() {
   try {
-    const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
-    const data = await response.json();
+    const response = await fetch('./sensors.json');
+    const sensorData = await response.json();
+    console.log('Loaded sensor data from JSON file');
     
-    if (data.city && data.countryName) {
-      return `${data.city}, ${data.countryName}`;
-    } else if (data.locality && data.countryName) {
-      return `${data.locality}, ${data.countryName}`;
-    } else if (data.countryName) {
-      return data.countryName;
-    } else {
-      return `Location (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
-    }
+    const now = new Date();
+    return sensorData.map((item, index) => ({
+      temperature: item.temperature,
+      timestamp: new Date(now.getTime() - (sensorData.length - 1 - index) * 1 * 60 * 1000),
+      humidity: Math.floor(Math.random() * 20) + 60,
+      pressure: Math.floor(Math.random() * 50) + 1000,
+      windSpeed: Math.random() * 5 + 2,
+      location: item.location,
+      sensorId: item.sensor_id
+    }));
   } catch (error) {
-    console.error('Error getting location name:', error);
-    return `Location (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
+    console.error('Error loading sensor data:', error);
+    return null;
   }
 }
 
-// Function to fetch real weather data from OpenWeatherMap API
-async function fetchRealWeatherData(lat, lon) {
-  const API_KEY = 'ec85cc05f2bb1af55811c674d2ae3095';
-  
-  try {
-    const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`);
-    
-    if (response.ok) {
-      const data = await response.json();
-      const now = new Date();
-      
-      const weatherData = [];
-      const currentTemp = Math.round(data.main.temp * 10) / 10;
-      
-      console.log('API Response:', data);
-      console.log('Current temperature:', currentTemp);
-      
-      // Generate 8 data points going back in time with slight variations around real temperature
-      for (let i = 7; i >= 0; i--) {
-        const timestamp = new Date(now.getTime() - i * 1 * 60 * 1000);
-        const variation = (Math.random() - 0.5) * 2;
-        const temperature = Math.round((currentTemp + variation) * 10) / 10;
-        
-        weatherData.push({
-          temperature: temperature,
-          timestamp: timestamp.toISOString()
-        });
-      }
-      
-      // Check threshold for current temperature
-      checkTemperatureThresholds(currentTemp);
-      
-      console.log('Using Current Weather API data - Temperature:', currentTemp + '°C');
-      return weatherData;
-    } else {
-      const errorData = await response.json();
-      console.error('API Error:', response.status, errorData);
-      throw new Error(`API failed with status ${response.status}: ${errorData.message}`);
-    }
-  } catch (error) {
-    console.error('Error fetching weather data:', error);
-    return generateDemoData();
-  }
-}
-
-// Function to generate demo data when API is not available
+// Function to generate demo data (last fallback)
 function generateDemoData() {
-  const now = new Date();
+  console.log('Using generated demo data');
   const data = [];
-  
+  const now = new Date();
   const baseTemp = 22;
   
   for (let i = 7; i >= 0; i--) {
@@ -381,151 +44,765 @@ function generateDemoData() {
     
     data.push({
       temperature: temperature,
-      timestamp: timestamp.toISOString()
+      timestamp: timestamp,
+      humidity: Math.floor(Math.random() * 20) + 60,
+      pressure: Math.floor(Math.random() * 50) + 1000,
+      windSpeed: Math.random() * 5 + 2,
+      location: 'Demo Location',
+      sensorId: 'DEMO_001'
     });
   }
   
   return data;
 }
 
-// Function to handle successful location retrieval
-async function handleLocationSuccess(position) {
-  const lat = position.coords.latitude;
-  const lon = position.coords.longitude;
-  
-  userLocation = { lat, lon };
-  
-  const locationName = await getLocationName(lat, lon);
-  
-  temperatureData = await fetchRealWeatherData(lat, lon);
-  
-  displayLocationInfo(locationName);
-  createTemperatureChart(temperatureData);
-  displayDataCards(temperatureData);
-  
-  startTemperatureUpdates(lat, lon, locationName);
-  
-  console.log('Location obtained:', locationName);
-  console.log('Using real weather data from OpenWeatherMap API');
+// Function to search for location coordinates
+async function searchLocation(locationName) {
+  try {
+    const response = await fetch(
+      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(locationName)}&limit=5&appid=${API_KEY}`
+    );
+    
+    if (response.ok) {
+      const locations = await response.json();
+      return locations.map(loc => ({
+        name: `${loc.name}, ${loc.country}`,
+        lat: loc.lat,
+        lon: loc.lon,
+        state: loc.state || ''
+      }));
+    }
+  } catch (error) {
+    console.error('Error searching location:', error);
+  }
+  return [];
 }
 
-// Function to start temperature updates
-function startTemperatureUpdates(lat, lon, locationName) {
-  setInterval(async () => {
-    if (temperatureData.length === 0) return;
+// Function to fetch real weather data
+async function fetchRealWeatherData(lat, lon, locationName = null) {
+  try {
+    // Try OneCall API 3.0 first (paid subscription)
+    try {
+      const onecallResponse = await fetch(
+        `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&exclude=minutely,alerts&appid=${API_KEY}&units=metric`
+      );
+      
+      if (onecallResponse.ok) {
+        const onecallData = await onecallResponse.json();
+        console.log('OneCall API Response:', onecallData);
+        
+        const currentTemp = Math.round(onecallData.current.temp * 10) / 10;
+        console.log('Current temperature:', currentTemp);
+        console.log('Using OneCall API 3.0 data - Temperature:', `${currentTemp}°C`);
+        
+        // Generate historical data based on current temperature
+        const data = [];
+        const now = new Date();
+        
+        for (let i = 7; i >= 0; i--) {
+          const timestamp = new Date(now.getTime() - i * 1 * 60 * 1000);
+          const variation = (Math.random() - 0.5) * 2;
+          const temperature = Math.round((currentTemp + variation) * 10) / 10;
+          
+          data.push({
+            temperature: temperature,
+            timestamp: timestamp,
+            humidity: onecallData.current.humidity || Math.floor(Math.random() * 20) + 60,
+            pressure: onecallData.current.pressure || Math.floor(Math.random() * 50) + 1000,
+            windSpeed: onecallData.current.wind_speed || Math.random() * 5 + 2,
+            location: locationName || 'Current Location',
+            sensorId: 'LIVE_WEATHER'
+          });
+        }
+        
+        return data;
+      }
+    } catch (onecallError) {
+      console.log('OneCall API not available, trying Current Weather API...');
+    }
     
+    // Fallback to Current Weather API (free)
+    const response = await fetch(
+      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
+    );
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const weatherData = await response.json();
+    console.log('API Response:', weatherData);
+    
+    const currentTemp = Math.round(weatherData.main.temp * 10) / 10;
+    console.log('Current temperature:', currentTemp);
+    console.log('Using Current Weather API data - Temperature:', `${currentTemp}°C`);
+    
+    // Generate historical data based on current temperature
+    const data = [];
     const now = new Date();
     
-    try {
-      const API_KEY = 'ec85cc05f2bb1af55811c674d2ae3095';
+    for (let i = 7; i >= 0; i--) {
+      const timestamp = new Date(now.getTime() - i * 1 * 60 * 1000);
+      const variation = (Math.random() - 0.5) * 2;
+      const temperature = Math.round((currentTemp + variation) * 10) / 10;
       
-      const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`);
-      
-      let newTemp;
-      if (response.ok) {
-        const data = await response.json();
-        newTemp = Math.round(data.main.temp * 10) / 10;
-        
-        // Check threshold for new temperature
-        checkTemperatureThresholds(newTemp);
-        
-        console.log('Updated with Current Weather API data - Temperature:', newTemp + '°C');
-      } else {
-        const errorData = await response.json();
-        console.error('API Update Error:', response.status, errorData);
-        const lastTemp = temperatureData[temperatureData.length - 1].temperature;
-        const variation = (Math.random() - 0.5) * 1;
-        newTemp = Math.round((lastTemp + variation) * 10) / 10;
-        console.log('Using fallback temperature data');
+      data.push({
+        temperature: temperature,
+        timestamp: timestamp,
+        humidity: weatherData.main.humidity || Math.floor(Math.random() * 20) + 60,
+        pressure: weatherData.main.pressure || Math.floor(Math.random() * 50) + 1000,
+        windSpeed: weatherData.wind?.speed || Math.random() * 5 + 2,
+        location: locationName || 'Current Location',
+        sensorId: 'LIVE_WEATHER'
+      });
+    }
+    
+    return data;
+    
+  } catch (error) {
+    console.error('Error fetching weather data:', error);
+    
+    // Try sensors.json as fallback
+    const sensorData = await loadSensorData();
+    if (sensorData) {
+      console.log('Using sensor data from JSON file as fallback');
+      return sensorData;
+    }
+    
+    // Final fallback: generate random demo data
+    console.log('API failed and no sensor data available, using demo data');
+    return generateDemoData();
+  }
+}
+
+// Function to get user location
+function getUserLocation() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Geolocation not supported'));
+      return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        resolve({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude
+        });
+      },
+      error => reject(error),
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000
       }
-      
-      const newReading = {
-        temperature: newTemp,
-        timestamp: now.toISOString()
+    );
+  });
+}
+
+// Function to get location name from coordinates
+async function getLocationName(lat, lon) {
+  try {
+    const response = await fetch(
+      `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${API_KEY}`
+    );
+    
+    if (response.ok) {
+      const locationData = await response.json();
+      if (locationData.length > 0) {
+        const location = locationData[0];
+        return `${location.name}, ${location.country}`;
+      }
+    }
+  } catch (error) {
+    console.error('Error getting location name:', error);
+  }
+  
+  return 'Unknown Location';
+}
+
+// Notification System
+function showNotification(title, message, type = 'info') {
+  // Check if notifications are enabled and not shown recently
+  const now = Date.now();
+  const key = `${title}_${type}`;
+  
+  if (lastNotificationTime[key] && (now - lastNotificationTime[key]) < 300000) {
+    return; // Don't show same notification within 5 minutes
+  }
+  
+  lastNotificationTime[key] = now;
+  
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  notification.innerHTML = `
+    <div class="notification-content">
+      <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+      <div class="notification-title">${title}</div>
+      <div class="notification-message">${message}</div>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Auto remove after 8 seconds
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.remove();
+    }
+  }, 8000);
+}
+
+// Function to check and send notifications
+function checkAndNotify(data) {
+  const latestData = data[data.length - 1];
+  const temp = latestData.temperature;
+  const preferredTemp = userSettings.preferredTemp;
+  const tempDiff = temp - preferredTemp;
+  
+  // Temperature alerts - more sensitive notifications
+  if (userSettings.tempAlerts) {
+    if (temp > preferredTemp) {
+      showNotification(
+        '🔥 Temperature Above Preference!',
+        `Current temperature is ${temp}°C, which is ${tempDiff.toFixed(1)}°C above your preferred ${preferredTemp}°C. Consider cooling measures!`,
+        'warning'
+      );
+    } else if (temp < preferredTemp && tempDiff < -2) {
+      showNotification(
+        '🥶 Temperature Below Preference!',
+        `Current temperature is ${temp}°C, which is ${Math.abs(tempDiff).toFixed(1)}°C below your preferred ${preferredTemp}°C. Consider warming up!`,
+        'warning'
+      );
+    } else if (Math.abs(tempDiff) <= 2) {
+      showNotification(
+        '✅ Perfect Temperature!',
+        `Current temperature (${temp}°C) is very close to your preference (${preferredTemp}°C). Enjoy the comfort!`,
+        'info'
+      );
+    }
+  }
+  
+  // Comfort recommendations
+  if (userSettings.comfortAlerts) {
+    if (tempDiff > 5) {
+      showNotification(
+        '👕 Clothing Suggestion',
+        'It\'s warmer than you prefer. Wear light, breathable clothing and stay in shade.',
+        'info'
+      );
+    } else if (tempDiff < -5) {
+      showNotification(
+        '🧥 Clothing Suggestion',
+        'It\'s cooler than you prefer. Consider wearing a jacket or warm layers.',
+        'info'
+      );
+    }
+  }
+  
+  // Weather warnings
+  if (userSettings.weatherAlerts) {
+    if (latestData.humidity > 80) {
+      showNotification(
+        '💧 High Humidity Warning',
+        'Very high humidity detected. Ensure good ventilation and stay hydrated.',
+        'warning'
+      );
+    }
+    
+    if (latestData.windSpeed > 8) {
+      showNotification(
+        '💨 Windy Conditions',
+        'Strong winds detected. Be cautious if going outside.',
+        'warning'
+      );
+    }
+  }
+}
+
+// Function to create or update the chart
+function createChart(data) {
+  const ctx = document.getElementById('temperatureChart').getContext('2d');
+  
+  if (temperatureChart) {
+    temperatureChart.destroy();
+  }
+  
+  temperatureChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(item => item.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})),
+      datasets: [{
+        label: 'Temperature (°C)',
+        data: data.map(item => item.temperature),
+        borderColor: '#ff6b6b',
+        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+        borderWidth: 3,
+        tension: 0.4,
+        fill: true,
+        pointBackgroundColor: '#ff6b6b',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            color: '#333',
+            font: {
+              size: 14,
+              weight: 'bold'
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: false,
+          grid: {
+            color: 'rgba(0,0,0,0.1)'
+          },
+          ticks: {
+            color: '#333',
+            font: {
+              size: 12
+            }
+          }
+        },
+        x: {
+          grid: {
+            color: 'rgba(0,0,0,0.1)'
+          },
+          ticks: {
+            color: '#333',
+            font: {
+              size: 12
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// Function to get clothing suggestions
+function getClothingSuggestion(temp, preferredTemp) {
+  const tempDiff = temp - preferredTemp;
+  
+  if (temp < 0) {
+    return {
+      suggestion: "Heavy winter coat, thermal layers, gloves, hat, warm boots",
+      icon: "🧥❄️",
+      comfort: "Very Cold"
+    };
+  } else if (temp < 10) {
+    return {
+      suggestion: "Warm jacket or coat, long sleeves, jeans or warm pants",
+      icon: "🧥",
+      comfort: "Cold"
+    };
+  } else if (temp < 15) {
+    return {
+      suggestion: "Light jacket or sweater, long pants",
+      icon: "👔",
+      comfort: "Cool"
+    };
+  } else if (temp >= 15 && temp <= 25) {
+    return {
+      suggestion: "Comfortable clothing, t-shirt or light shirt",
+      icon: "👕",
+      comfort: "Comfortable"
+    };
+  } else if (temp < 30) {
+    return {
+      suggestion: "Light, breathable clothing, shorts or light pants",
+      icon: "🩳",
+      comfort: "Warm"
+    };
+  } else if (temp < 35) {
+    return {
+      suggestion: "Very light clothing, stay in shade, drink water",
+      icon: "🌞",
+      comfort: "Hot"
+    };
+  } else {
+    return {
+      suggestion: "Minimal clothing, stay indoors with AC, hydrate frequently",
+      icon: "🔥",
+      comfort: "Very Hot"
+    };
+  }
+}
+
+// Function to update data cards
+function updateDataCards(data) {
+  const latestData = data[data.length - 1];
+  const clothingSuggestion = getClothingSuggestion(latestData.temperature, userSettings.preferredTemp);
+  
+  // Temperature recommendation logic based on user preference
+  let tempRecommendation = '';
+  let tempIcon = '';
+  let tempClass = '';
+  const preferredTemp = userSettings.preferredTemp;
+  const tempDiff = latestData.temperature - preferredTemp;
+  
+  if (tempDiff <= -10) {
+    tempRecommendation = `Much colder than your preference (${preferredTemp}°C)`;
+    tempIcon = '🥶';
+    tempClass = 'cold';
+  } else if (tempDiff <= -5) {
+    tempRecommendation = `Cooler than your preference (${preferredTemp}°C)`;
+    tempIcon = '🧥';
+    tempClass = 'cool';
+  } else if (tempDiff >= -2 && tempDiff <= 2) {
+    tempRecommendation = `Perfect! Close to your preference (${preferredTemp}°C)`;
+    tempIcon = '😊';
+    tempClass = 'comfortable';
+  } else if (tempDiff <= 5) {
+    tempRecommendation = `Warmer than your preference (${preferredTemp}°C)`;
+    tempIcon = '🌞';
+    tempClass = 'warm';
+  } else if (tempDiff <= 10) {
+    tempRecommendation = `Much warmer than your preference (${preferredTemp}°C)`;
+    tempIcon = '🔥';
+    tempClass = 'hot';
+  } else {
+    tempRecommendation = `Very hot compared to your preference (${preferredTemp}°C)`;
+    tempIcon = '🌡️';
+    tempClass = 'very-hot';
+  }
+  
+  // Humidity recommendation
+  let humidityRecommendation = '';
+  let humidityIcon = '';
+  
+  if (latestData.humidity < 40) {
+    humidityRecommendation = 'Low humidity - Consider humidifier';
+    humidityIcon = '🏜️';
+  } else if (latestData.humidity >= 40 && latestData.humidity <= 60) {
+    humidityRecommendation = 'Optimal humidity level';
+    humidityIcon = '✅';
+  } else {
+    humidityRecommendation = 'High humidity - Ensure ventilation';
+    humidityIcon = '💧';
+  }
+  
+  const container = document.getElementById('data-container');
+  container.innerHTML = `
+    <div class="data-card temperature-card ${tempClass}">
+      <div class="data-icon">${tempIcon}</div>
+      <div class="data-content">
+        <h3>Current Temperature</h3>
+        <div class="data-value">${latestData.temperature}°C</div>
+        <div class="data-recommendation">${tempRecommendation}</div>
+        <div class="data-time">Updated: ${latestData.timestamp.toLocaleTimeString()}</div>
+      </div>
+    </div>
+    
+    <div class="data-card clothing-card">
+      <div class="data-icon">${clothingSuggestion.icon}</div>
+      <div class="data-content">
+        <h3>Clothing Suggestion</h3>
+        <div class="data-value">${clothingSuggestion.comfort}</div>
+        <div class="data-recommendation">${clothingSuggestion.suggestion}</div>
+      </div>
+    </div>
+    
+    <div class="data-card humidity-card">
+      <div class="data-icon">${humidityIcon}</div>
+      <div class="data-content">
+        <h3>Humidity</h3>
+        <div class="data-value">${latestData.humidity}%</div>
+        <div class="data-recommendation">${humidityRecommendation}</div>
+      </div>
+    </div>
+    
+    <div class="data-card pressure-card">
+      <div class="data-icon">📊</div>
+      <div class="data-content">
+        <h3>Pressure</h3>
+        <div class="data-value">${latestData.pressure} hPa</div>
+        <div class="data-recommendation">Atmospheric pressure reading</div>
+      </div>
+    </div>
+    
+    <div class="data-card wind-card">
+      <div class="data-icon">💨</div>
+      <div class="data-content">
+        <h3>Wind Speed</h3>
+        <div class="data-value">${latestData.windSpeed.toFixed(1)} m/s</div>
+        <div class="data-recommendation">Current wind conditions</div>
+      </div>
+    </div>
+  `;
+  
+  // Check for notifications
+  checkAndNotify(data);
+}
+
+// Settings management
+let userSettings = {
+  preferredTemp: 22,
+  tempAlerts: true,
+  comfortAlerts: true,
+  weatherAlerts: true,
+  useManualLocation: false,
+  manualLocationName: '',
+  manualLat: null,
+  manualLon: null
+};
+
+// Load settings from localStorage
+function loadSettings() {
+  const saved = localStorage.getItem('temperatureSettings');
+  if (saved) {
+    userSettings = { ...userSettings, ...JSON.parse(saved) };
+  }
+}
+
+// Save settings to localStorage
+function saveSettings() {
+  localStorage.setItem('temperatureSettings', JSON.stringify(userSettings));
+}
+
+// Apply settings to UI
+function applySettings() {
+  document.getElementById('temp-alerts').checked = userSettings.tempAlerts;
+  document.getElementById('comfort-alerts').checked = userSettings.comfortAlerts;
+  document.getElementById('weather-alerts').checked = userSettings.weatherAlerts;
+  document.getElementById('preferred-temp').value = userSettings.preferredTemp;
+  document.getElementById('manual-location').checked = userSettings.useManualLocation;
+  document.getElementById('location-name-input').value = userSettings.manualLocationName;
+  document.getElementById('latitude-input').value = userSettings.manualLat || '';
+  document.getElementById('longitude-input').value = userSettings.manualLon || '';
+  
+  // Toggle manual location inputs
+  const manualInputs = document.getElementById('manual-location-inputs');
+  manualInputs.style.display = userSettings.useManualLocation ? 'block' : 'none';
+}
+
+// Location search functionality
+async function handleLocationSearch() {
+  const searchTerm = document.getElementById('location-search').value.trim();
+  if (!searchTerm) return;
+  
+  const results = await searchLocation(searchTerm);
+  const resultsContainer = document.getElementById('search-results');
+  
+  if (results.length === 0) {
+    resultsContainer.innerHTML = '<div class="search-result">No locations found</div>';
+    resultsContainer.style.display = 'block';
+    return;
+  }
+  
+  resultsContainer.innerHTML = results.map(location => 
+    `<div class="search-result" onclick="selectLocation(${location.lat}, ${location.lon}, '${location.name}')">
+      📍 ${location.name}${location.state ? `, ${location.state}` : ''}
+    </div>`
+  ).join('');
+  
+  resultsContainer.style.display = 'block';
+}
+
+// Select location from search results
+async function selectLocation(lat, lon, name) {
+  document.getElementById('search-results').style.display = 'none';
+  document.getElementById('location-search').value = name;
+  
+  // Update data with selected location
+  const data = await fetchRealWeatherData(lat, lon, name);
+  temperatureData = data;
+  
+  document.getElementById('location-name').textContent = name;
+  document.getElementById('sensor-id').textContent = data[0].sensorId;
+  
+  createChart(data);
+  updateDataCards(data);
+  
+  // Start regular updates for the new location
+  if (data[0].sensorId === 'LIVE_WEATHER') {
+    startRegularUpdates(lat, lon, name);
+  }
+}
+
+// Function to ask for location permission
+async function askForLocation() {
+  try {
+    const position = await getUserLocation();
+    const locationName = await getLocationName(position.lat, position.lon);
+    await selectLocation(position.lat, position.lon, locationName);
+    document.getElementById('location-search').value = locationName;
+  } catch (error) {
+    showNotification(
+      '📍 Location Access Denied',
+      'Please search for your location manually or allow location access.',
+      'warning'
+    );
+  }
+}
+
+// Main initialization function
+async function initializeDashboard() {
+  loadSettings();
+  
+  try {
+    let data;
+    let locationName = 'Unknown Location';
+    let position;
+    
+    if (userSettings.useManualLocation && userSettings.manualLat && userSettings.manualLon) {
+      // Use manual location
+      position = {
+        lat: userSettings.manualLat,
+        lon: userSettings.manualLon
       };
+      locationName = userSettings.manualLocationName || 'Manual Location';
+      console.log('Using manual location:', position);
       
-      temperatureData.push(newReading);
+      data = await fetchRealWeatherData(position.lat, position.lon, locationName);
+      console.log('Using real weather data from manual location');
       
+    } else {
+      try {
+        position = await getUserLocation();
+        console.log('Location obtained:', position);
+        
+        locationName = await getLocationName(position.lat, position.lon);
+        console.log('Location name:', locationName);
+        
+        data = await fetchRealWeatherData(position.lat, position.lon, locationName);
+        console.log('Using real weather data from OpenWeatherMap API');
+        
+      } catch (locationError) {
+        console.log('Location access denied, using demo data...');
+        data = generateDemoData();
+        locationName = 'Demo Location - Search for your location above';
+      }
+    }
+    
+    // Update location info
+    document.getElementById('location-name').textContent = locationName;
+    document.getElementById('sensor-id').textContent = data[0].sensorId;
+    
+    // Store data globally
+    temperatureData = data;
+    
+    // Create chart and update cards
+    createChart(data);
+    updateDataCards(data);
+    
+    // Start regular updates if using real API data
+    if (data[0].sensorId === 'LIVE_WEATHER' && position) {
+      startRegularUpdates(position.lat, position.lon, locationName);
+    }
+    
+  } catch (error) {
+    console.error('Initialization error:', error);
+    
+    const data = generateDemoData();
+    temperatureData = data;
+    
+    document.getElementById('location-name').textContent = 'Demo Location';
+    document.getElementById('sensor-id').textContent = 'DEMO_001';
+    
+    createChart(data);
+    updateDataCards(data);
+  }
+}
+
+// Function to start regular updates
+function startRegularUpdates(lat, lon, locationName) {
+  // Clear any existing intervals
+  if (window.updateInterval) {
+    clearInterval(window.updateInterval);
+  }
+  
+  window.updateInterval = setInterval(async () => {
+    try {
+      const currentData = await fetchRealWeatherData(lat, lon, locationName);
+      const newData = currentData[currentData.length - 1];
+      
+      // Add new data point and remove oldest if we have more than 8 points
+      temperatureData.push(newData);
       if (temperatureData.length > 8) {
         temperatureData.shift();
       }
       
-      createTemperatureChart(temperatureData);
-      displayDataCards(temperatureData);
+      // Update chart and cards
+      createChart(temperatureData);
+      updateDataCards(temperatureData);
       
     } catch (error) {
-      console.error('Error updating weather data:', error);
+      console.error('Error updating data:', error);
+      
+      const sensorData = await loadSensorData();
+      if (sensorData) {
+        temperatureData = sensorData;
+        createChart(temperatureData);
+        updateDataCards(temperatureData);
+        console.log('Updated with sensor data from JSON file');
+      }
     }
     
-    console.log('Updated at:', now.toLocaleString());
-  }, 60000);
+    console.log('Updated at:', new Date().toLocaleString());
+  }, 60000); // Update every 1 minute
 }
 
-// Function to handle location errors
-function handleLocationError(error) {
-  const errorMessages = {
-    1: 'Location access denied by user',
-    2: 'Location information unavailable',
-    3: 'Location request timeout'
-  };
+// Settings event handlers
+function toggleSettings() {
+  const panel = document.getElementById('settings-panel');
+  panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+}
 
-  const errorMessage = errorMessages[error.code] || 'Unknown location error';
+function toggleManualLocation() {
+  const manualInputs = document.getElementById('manual-location-inputs');
+  const isChecked = document.getElementById('manual-location').checked;
+  manualInputs.style.display = isChecked ? 'block' : 'none';
+}
+
+function saveUserSettings() {
+  // Get values from form
+  userSettings.tempAlerts = document.getElementById('temp-alerts').checked;
+  userSettings.comfortAlerts = document.getElementById('comfort-alerts').checked;
+  userSettings.weatherAlerts = document.getElementById('weather-alerts').checked;
+  userSettings.preferredTemp = parseInt(document.getElementById('preferred-temp').value) || 22;
+  userSettings.useManualLocation = document.getElementById('manual-location').checked;
+  userSettings.manualLocationName = document.getElementById('location-name-input').value;
+  userSettings.manualLat = parseFloat(document.getElementById('latitude-input').value) || null;
+  userSettings.manualLon = parseFloat(document.getElementById('longitude-input').value) || null;
   
-  document.getElementById('location-name').textContent = 'Location Required';
-  document.getElementById('sensor-id').textContent = errorMessage;
+  // Save to localStorage
+  saveSettings();
   
-  const dataContainer = document.getElementById('data-container');
-  dataContainer.innerHTML = `
-    <div class="error-card">
-      <h3>Location Access Required</h3>
-      <p>${errorMessage}</p>
-      <p>Please enable location access to get temperature data for your area.</p>
-      <button onclick="requestLocation()" style="
-        background: #667eea;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 5px;
-        cursor: pointer;
-        margin-top: 10px;
-      ">Allow Location Access</button>
-    </div>
-  `;
-
-  console.error('Location error:', error);
+  // Close settings panel
+  document.getElementById('settings-panel').style.display = 'none';
+  
+  // Show success notification
+  showNotification(
+    '✅ Settings Saved',
+    'Your preferences have been saved successfully!',
+    'info'
+  );
+  
+  // Reinitialize dashboard with new settings
+  setTimeout(() => {
+    initializeDashboard();
+  }, 1000);
 }
 
-// Function to request location
-function requestLocation() {
-  if (!navigator.geolocation) {
-    handleLocationError({ code: 2, message: 'Geolocation not supported' });
-    return;
-  }
-
-  const options = {
-    enableHighAccuracy: true,
-    timeout: 10000,
-    maximumAge: 60000
-  };
-
-  navigator.geolocation.getCurrentPosition(handleLocationSuccess, handleLocationError, options);
-}
-
-// Function to check if API key is configured
-function checkApiConfiguration() {
-  const API_KEY = 'ec85cc05f2bb1af55811c674d2ae3095';
-  if (API_KEY === 'your_openweathermap_api_key_here') {
-    document.getElementById('api-notice').style.display = 'block';
-    return false;
-  }
-  return true;
-}
-
-// Initialize the application
-document.addEventListener('DOMContentLoaded', function() {
-  checkApiConfiguration();
-  loadSettings();
-  requestNotificationPermission();
-  createSettingsPanel();
-  requestLocation();
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', () => {
+  initializeDashboard();
+  setTimeout(applySettings, 100);
+  
+  // Hide search results when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#location-search-container')) {
+      document.getElementById('search-results').style.display = 'none';
+    }
+  });
 });

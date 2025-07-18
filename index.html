@@ -1,26 +1,99 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Temperature Dashboard New</title>
+  <title>Smart Temperature Dashboard</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
-  <h1> Smart Temperature Dashboard</h1>
-  <div id="api-notice" class="api-notice" style="display: none;">
-    <p>⚠️ Configure your OpenWeatherMap API key in app.js to get real weather data</p>
+  <h1>🌡️ Smart Temperature Dashboard</h1>
+  
+  <!-- Location Search Bar -->
+  <div class="search-container">
+    <div id="location-search-container">
+      <input type="text" id="location-search" placeholder="🔍 Search for a city or location..." onkeyup="if(event.key==='Enter') handleLocationSearch()">
+      <button onclick="handleLocationSearch()" class="search-btn">Search</button>
+      <button onclick="askForLocation()" class="location-btn">📍 Use My Location</button>
+      <div id="search-results" class="search-results"></div>
+    </div>
   </div>
+
   <div id="location-info" class="location-header">
-    <button class="settings-button" onclick="document.getElementById('settings-panel').style.display='flex'">
+    <button class="settings-button" onclick="toggleSettings()">
       ⚙️ Settings
     </button>
     <h2 id="location-name">Getting your location...</h2>
     <span id="sensor-id">Temperature Sensor</span>
   </div>
+
+  <!-- Settings Panel -->
+  <div id="settings-panel" class="settings-overlay" style="display: none;">
+    <div class="settings-content">
+      <h3>⚙️ Dashboard Settings</h3>
+      
+      <div class="settings-group">
+        <label>🌡️ Preferred Temperature (°C)</label>
+        <input type="number" id="preferred-temp" value="22" min="-10" max="50">
+        <p>Temperature recommendations will be based on this preference</p>
+      </div>
+      
+      <div class="settings-group">
+        <label>
+          <input type="checkbox" id="manual-location" onchange="toggleManualLocation()"> 
+          📍 Use Manual Location
+        </label>
+        <p>Override GPS location with custom coordinates</p>
+        
+        <div id="manual-location-inputs" style="display: none; margin-top: 10px;">
+          <label>Location Name</label>
+          <input type="text" id="location-name-input" placeholder="e.g., New York, USA">
+          
+          <label>Latitude</label>
+          <input type="number" id="latitude-input" placeholder="e.g., 40.7128" step="any">
+          
+          <label>Longitude</label>
+          <input type="number" id="longitude-input" placeholder="e.g., -74.0060" step="any">
+        </div>
+      </div>
+      
+      <div class="settings-group">
+        <h4>🔔 Notification Settings</h4>
+        <div class="setting-item">
+          <label>
+            <input type="checkbox" id="temp-alerts" checked> Temperature Alerts
+          </label>
+          <p>Get notified when temperature changes significantly</p>
+        </div>
+        <div class="setting-item">
+          <label>
+            <input type="checkbox" id="comfort-alerts" checked> Comfort Recommendations
+          </label>
+          <p>Receive clothing and comfort suggestions</p>
+        </div>
+        <div class="setting-item">
+          <label>
+            <input type="checkbox" id="weather-alerts" checked> Weather Warnings
+          </label>
+          <p>Get alerts for extreme weather conditions</p>
+        </div>
+      </div>
+      
+      <div class="settings-buttons">
+        <button onclick="saveUserSettings()" class="btn-primary">
+          💾 Save Settings
+        </button>
+        <button onclick="document.getElementById('settings-panel').style.display='none'" class="btn-secondary">
+          ✖️ Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="dashboard-container">
     <div class="chart-section">
       <h2>📊 Temperature Over Time</h2>
@@ -31,6 +104,7 @@
       <div id="data-container"></div>
     </div>
   </div>
+  
   <script src="app.js"></script>
 </body>
 
