@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Temperature Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+  <h1>🌡️ Smart Temperature Dashboard</h1>
+  <div id="api-notice" class="api-notice" style="display: none;">
+    <p>⚠️ Configure your OpenWeatherMap API key in app.js to get real weather data</p>
+  </div>
+  <div id="location-info" class="location-header">
+    <button class="settings-button" onclick="document.getElementById('settings-panel').style.display='flex'">
+      ⚙️ Settings
+    </button>
+    <h2 id="location-name">Getting your location...</h2>
+    <span id="sensor-id">Temperature Sensor</span>
+  </div>
+  <div class="dashboard-container">
+    <div class="chart-section">
+      <h2>📊 Temperature Over Time</h2>
+      <canvas id="temperatureChart"></canvas>
+    </div>
+    <div class="data-section">
+      <h2>📱 Smart Readings & Recommendations</h2>
+      <div id="data-container"></div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+
+</html>
