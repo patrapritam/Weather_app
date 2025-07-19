@@ -1,22 +1,22 @@
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Temperature Dashboard</title>
+  <title>Smart Life Weather Dashboard</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
-  <h1>🌡️ Smart Temperature Dashboard</h1>
+  <h1>🌡️ Smart Life Weather Dashboard</h1>
+  <p class="subtitle">Your personal weather assistant for daily life decisions</p>
   
   <!-- Location Search Bar -->
   <div class="search-container">
     <div id="location-search-container">
-      <input type="text" id="location-search" placeholder="🔍 Search for a city or location..." onkeyup="if(event.key==='Enter') handleLocationSearch()">
+      <input type="text" id="location-search" placeholder="🔍 Search for a city or location..." oninput="handleSearchInput()" onkeyup="if(event.key==='Enter') handleLocationSearch()">
       <button onclick="handleLocationSearch()" class="search-btn">Search</button>
       <button onclick="askForLocation()" class="location-btn">📍 Use My Location</button>
       <div id="search-results" class="search-results"></div>
@@ -28,18 +28,41 @@
       ⚙️ Settings
     </button>
     <h2 id="location-name">Getting your location...</h2>
-    <span id="sensor-id">Temperature Sensor</span>
+    <span id="sensor-id">Weather Station</span>
   </div>
 
-  <!-- Settings Panel -->
+  <!-- Enhanced Settings Panel -->
   <div id="settings-panel" class="settings-overlay" style="display: none;">
     <div class="settings-content">
-      <h3>⚙️ Dashboard Settings</h3>
+      <h3>⚙️ Smart Dashboard Settings</h3>
       
       <div class="settings-group">
         <label>🌡️ Preferred Temperature (°C)</label>
         <input type="number" id="preferred-temp" value="22" min="-10" max="50">
-        <p>Temperature recommendations will be based on this preference</p>
+        <p>All recommendations will be based on this temperature preference</p>
+      </div>
+
+      <div class="settings-group">
+        <label>🏠 House Size (m²)</label>
+        <input type="number" id="house-size" value="100" min="20" max="1000">
+        <p>Used for energy cost calculations</p>
+      </div>
+
+      <div class="settings-group">
+        <label>🌱 Your Plants</label>
+        <select id="plant-select">
+          <option value="">Select a plant to add...</option>
+          <option value="tomato">🍅 Tomato</option>
+          <option value="lettuce">🥬 Lettuce</option>
+          <option value="basil">🌿 Basil</option>
+          <option value="rose">🌹 Rose</option>
+          <option value="mint">🌿 Mint</option>
+          <option value="pepper">🌶️ Pepper</option>
+          <option value="spinach">🥬 Spinach</option>
+        </select>
+        <button onclick="addPlant()" class="btn-add">Add Plant</button>
+        <div id="plants-list" class="plants-container"></div>
+        <p>Get personalized plant care advice based on current weather</p>
       </div>
       
       <div class="settings-group">
@@ -62,7 +85,7 @@
       </div>
       
       <div class="settings-group">
-        <h4>🔔 Notification Settings</h4>
+        <h4>🔔 Smart Notifications</h4>
         <div class="setting-item">
           <label>
             <input type="checkbox" id="temp-alerts" checked> Temperature Alerts
@@ -71,15 +94,15 @@
         </div>
         <div class="setting-item">
           <label>
-            <input type="checkbox" id="comfort-alerts" checked> Comfort Recommendations
+            <input type="checkbox" id="comfort-alerts" checked> Life Recommendations
           </label>
-          <p>Receive clothing and comfort suggestions</p>
+          <p>Receive clothing, exercise, and lifestyle suggestions</p>
         </div>
         <div class="setting-item">
           <label>
-            <input type="checkbox" id="weather-alerts" checked> Weather Warnings
+            <input type="checkbox" id="weather-alerts" checked> Health & Safety Warnings
           </label>
-          <p>Get alerts for extreme weather conditions</p>
+          <p>Get alerts for health risks and safety concerns</p>
         </div>
       </div>
       
@@ -96,16 +119,16 @@
 
   <div class="dashboard-container">
     <div class="chart-section">
-      <h2>📊 Temperature Over Time</h2>
+      <h2>📊 Temperature Trends</h2>
       <canvas id="temperatureChart"></canvas>
     </div>
     <div class="data-section">
-      <h2>📱 Smart Readings & Recommendations</h2>
+      <h2>🧠 Smart Life Insights</h2>
       <div id="data-container"></div>
     </div>
   </div>
   
-  <script src="app.js"></script>
+  <script src="script.js"></script>
 </body>
 
 </html>

@@ -1,3 +1,7 @@
+html {
+  height: 100%;
+  width: 100%;
+}
 
 body {
   font-family: 'Arial', sans-serif;
@@ -8,12 +12,93 @@ body {
   min-height: 100vh;
 }
 
+.subtitle {
+  text-align: center;
+  color: white;
+  margin-bottom: 30px;
+  font-size: 1.2em;
+  opacity: 0.9;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
 h1 {
   text-align: center;
   color: white;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   font-size: 2.5em;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Enhanced Data Cards for New Features */
+.data-card.energy-card {
+  background: linear-gradient(135deg, #feca57, #ff9ff3);
+}
+
+.data-card.sleep-card {
+  background: linear-gradient(135deg, #48dbfb, #0abde3);
+}
+
+.data-card.exercise-card {
+  background: linear-gradient(135deg, #ff9ff3, #f368e0);
+}
+
+.data-card.air-quality-card {
+  background: linear-gradient(135deg, #7bed9f, #70a1ff);
+}
+
+.data-card.food-card {
+  background: linear-gradient(135deg, #ff6348, #ff7675);
+}
+
+.data-card.pet-card {
+  background: linear-gradient(135deg, #ffa502, #ff6348);
+}
+
+.data-card.laundry-card {
+  background: linear-gradient(135deg, #5f27cd, #341f97);
+}
+
+/* Plant Management */
+.plants-container {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.plant-tag {
+  background: #667eea;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 0.9em;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.plant-tag button {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+.btn-add {
+  margin-left: 10px;
+  padding: 8px 15px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.btn-add:hover {
+  background: #5a6fd8;
 }
 
 /* Search Container */
@@ -25,6 +110,8 @@ h1 {
   border-radius: 15px;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  z-index: 1000;
 }
 
 #location-search-container {
@@ -86,7 +173,7 @@ h1 {
   background: white;
   border-radius: 10px;
   box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-  z-index: 1000;
+  z-index: 2000;
   max-height: 200px;
   overflow-y: auto;
   display: none;
@@ -180,7 +267,7 @@ h1 {
 }
 
 #data-container {
-  max-height: 400px;
+  max-height: 500px;
   overflow-y: auto;
 }
 
@@ -199,12 +286,10 @@ h1 {
   z-index: 1;
 }
 
-/* Settings panel should be above everything except notifications */
 .settings-overlay {
   z-index: 1500;
 }
 
-/* Dashboard container */
 .dashboard-container {
   position: relative;
   z-index: 2;
@@ -213,46 +298,6 @@ h1 {
 .data-card:hover {
   transform: translateY(-5px) scale(1.02);
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-}
-
-.data-card.cold {
-  background: linear-gradient(135deg, #74b9ff, #0984e3);
-}
-
-.data-card.cool {
-  background: linear-gradient(135deg, #81ecec, #00b894);
-}
-
-.data-card.comfortable {
-  background: linear-gradient(135deg, #55a3ff, #667eea);
-}
-
-.data-card.warm {
-  background: linear-gradient(135deg, #fdcb6e, #e17055);
-}
-
-.data-card.hot {
-  background: linear-gradient(135deg, #fd79a8, #e84393);
-}
-
-.data-card.very-hot {
-  background: linear-gradient(135deg, #ff6b6b, #ee5a52);
-}
-
-.data-card.clothing-card {
-  background: linear-gradient(135deg, #a29bfe, #6c5ce7);
-}
-
-.data-card.humidity-card {
-  background: linear-gradient(135deg, #74b9ff, #0984e3);
-}
-
-.data-card.pressure-card {
-  background: linear-gradient(135deg, #fd79a8, #e84393);
-}
-
-.data-card.wind-card {
-  background: linear-gradient(135deg, #fdcb6e, #e17055);
 }
 
 .data-icon {
@@ -346,51 +391,6 @@ h1 {
 
 .notification-close:hover {
   color: #333;
-}
-
-/* Search Results Styling */
-.search-container {
-  position: relative;
-  z-index: 1000;
-}
-
-.search-results {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-  max-height: 300px;
-  overflow-y: auto;
-  z-index: 1001;
-}
-
-.search-result {
-  padding: 15px 20px;
-  cursor: pointer;
-  border-bottom: 1px solid #eee;
-  transition: background-color 0.3s ease;
-}
-
-.search-result:hover {
-  background-color: #f5f5f5;
-}
-
-.search-result:last-child {
-  border-bottom: none;
-}
-
-/* Ensure search container is above other elements */
-#location-search-container {
-  position: relative;
-  z-index: 1000;
-}
-
-.notification-close:hover {
-  color: #333;
   transform: scale(1.2);
 }
 
@@ -413,7 +413,7 @@ h1 {
   background: white;
   padding: 30px;
   border-radius: 20px;
-  max-width: 450px;
+  max-width: 500px;
   width: 90%;
   box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
   max-height: 80vh;
@@ -451,7 +451,8 @@ h1 {
 }
 
 .settings-group input[type="number"], 
-.settings-group input[type="text"] {
+.settings-group input[type="text"],
+.settings-group select {
   width: 100%;
   padding: 12px;
   border: 2px solid #ddd;
@@ -463,7 +464,8 @@ h1 {
 }
 
 .settings-group input[type="number"]:focus, 
-.settings-group input[type="text"]:focus {
+.settings-group input[type="text"]:focus,
+.settings-group select:focus {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -616,31 +618,5 @@ h1 {
   .data-icon {
     margin-right: 0;
     margin-bottom: 10px;
-  }
-}
-
-@media (max-width: 480px) {
-  body {
-    padding: 10px;
-  }
-  
-  .search-container, .location-header {
-    padding: 15px;
-  }
-  
-  .chart-section, .data-section {
-    padding: 15px;
-  }
-  
-  .data-value {
-    font-size: 1.5em;
-  }
-  
-  .settings-content {
-    padding: 15px;
-  }
-  
-  .settings-group {
-    padding: 15px;
   }
 }

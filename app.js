@@ -1,13 +1,272 @@
-
-// Temperature Dashboard with Real API Integration
+// Enhanced Weather Dashboard with Unique Real-Life Features
 let temperatureChart;
 let temperatureData = [];
 let lastNotificationTime = {};
+let energyChart;
+let plantCareReminders = [];
 
 // API Configuration
 const API_KEY = 'ec85cc05f2bb1af55811c674d2ae3095';
 
-// Function to load data from sensors.json as fallback
+// Plant Care Database
+const plantDatabase = {
+  'tomato': { minTemp: 15, maxTemp: 29, waterFreq: 2, sunlight: 'full' },
+  'lettuce': { minTemp: 7, maxTemp: 24, waterFreq: 1, sunlight: 'partial' },
+  'basil': { minTemp: 18, maxTemp: 27, waterFreq: 2, sunlight: 'full' },
+  'rose': { minTemp: 5, maxTemp: 30, waterFreq: 3, sunlight: 'full' },
+  'mint': { minTemp: 10, maxTemp: 25, waterFreq: 1, sunlight: 'partial' },
+  'pepper': { minTemp: 20, maxTemp: 32, waterFreq: 2, sunlight: 'full' },
+  'spinach': { minTemp: 2, maxTemp: 20, waterFreq: 1, sunlight: 'partial' }
+};
+
+// Energy efficiency calculator (changed to INR)
+function calculateHeatingCoolingCost(currentTemp, targetTemp, houseSize = 100) {
+  const tempDiff = Math.abs(currentTemp - targetTemp);
+  const baseRate = 10; // per kWh in INR (Indian Rupees)
+  const efficiencyFactor = houseSize / 100; // square meters
+  
+  let energyNeeded = 0;
+  if (currentTemp < targetTemp) {
+    // Heating needed
+    energyNeeded = tempDiff * 0.5 * efficiencyFactor; // kWh for heating
+  } else if (currentTemp > targetTemp) {
+    // Cooling needed  
+    energyNeeded = tempDiff * 0.8 * efficiencyFactor; // kWh for cooling (AC less efficient)
+  }
+  
+  const hourlyCost = energyNeeded * baseRate;
+  const dailyCost = hourlyCost * 24;
+  
+  return {
+    hourly: hourlyCost.toFixed(2),
+    daily: dailyCost.toFixed(2),
+    energyKwh: energyNeeded.toFixed(1),
+    recommendation: getEnergyRecommendation(tempDiff, currentTemp, targetTemp)
+  };
+}
+
+function getEnergyRecommendation(tempDiff, current, target) {
+  if (tempDiff < 2) return "👍 Optimal! Minimal energy needed.";
+  if (current < target) {
+    if (tempDiff > 10) return "🏠 Consider wearing warm clothes first before heating.";
+    return "🔥 Light heating recommended. Try 1-2°C lower target.";
+  } else {
+    if (tempDiff > 10) return "🌬️ Use fans first, then AC. Open windows at night.";
+    return "❄️ Light cooling needed. Try raising thermostat by 1-2°C.";
+  }
+}
+
+// Sleep quality predictor
+function getSleepQualityPrediction(temp, humidity, pressure) {
+  let score = 100;
+  let issues = [];
+  
+  // Ideal sleep temperature: 16-19°C
+  if (temp < 16) {
+    score -= (16 - temp) * 5;
+    issues.push("🥶 Too cold - may cause restless sleep");
+  } else if (temp > 19) {
+    score -= (temp - 19) * 7;
+    issues.push("🔥 Too warm - may reduce deep sleep");
+  }
+  
+  // Ideal humidity: 40-60%
+  if (humidity < 40) {
+    score -= (40 - humidity) / 2;
+    issues.push("🏜️ Low humidity - may cause dry throat/nose");
+  } else if (humidity > 60) {
+    score -= (humidity - 60) / 2;
+    issues.push("💧 High humidity - may feel stuffy");
+  }
+  
+  // Pressure effects
+  if (pressure < 1000) {
+    score -= 10;
+    issues.push("📉 Low pressure - may cause headaches");
+  }
+  
+  score = Math.max(0, Math.min(100, score));
+  
+  let quality = "😴 Excellent";
+  if (score < 40) quality = "😣 Poor";
+  else if (score < 60) quality = "😐 Fair";
+  else if (score < 80) quality = "😊 Good";
+  
+  return { score: Math.round(score), quality, issues };
+}
+
+// Food storage advisor
+function getFoodStorageAdvice(temp, humidity) {
+  const advice = [];
+  
+  if (temp > 25) {
+    advice.push("🍎 Store fruits in refrigerator");
+    advice.push("🥛 Check dairy products more frequently");
+    advice.push("🍞 Keep bread in cool, dry place");
+  }
+  
+  if (humidity > 70) {
+    advice.push("🧂 Keep salt/sugar in airtight containers");
+    advice.push("🍪 Store crackers/cereals with desiccant");
+    advice.push("🧀 Wrap cheese in breathable paper");
+  }
+  
+  if (temp < 10) {
+    advice.push("🥔 Don't refrigerate potatoes/onions");
+    advice.push("🍌 Bananas may brown faster in cold");
+  }
+  
+  if (humidity < 40) {
+    advice.push("🥖 Cover bread to prevent drying");
+    advice.push("🧄 Store garlic in ventilated container");
+  }
+  
+  return advice;
+}
+
+// Exercise safety advisor
+function getExerciseAdvice(temp, humidity, windSpeed) {
+  const heatIndex = calculateHeatIndex(temp, humidity);
+  let advice = [];
+  let safetyLevel = "safe";
+  
+  if (heatIndex > 32) {
+    safetyLevel = "dangerous";
+    advice.push("⚠️ Avoid outdoor exercise - heat stroke risk");
+    advice.push("🏠 Exercise indoors with AC");
+  } else if (heatIndex > 27) {
+    safetyLevel = "caution";
+    advice.push("⚡ Exercise only in early morning/evening");
+    advice.push("💧 Drink water every 15 minutes");
+    advice.push("🌳 Seek shade frequently");
+  } else if (temp < 0) {
+    safetyLevel = "caution";
+    advice.push("🧥 Warm up indoors first");
+    advice.push("👟 Wear proper winter gear");
+    advice.push("🏃 Start slowly to prevent injury");
+  } else if (windSpeed > 10) {
+    advice.push("💨 Strong winds - be careful with balance");
+    advice.push("🧥 Wear wind-resistant clothing");
+  } else {
+    advice.push("✅ Great conditions for outdoor exercise!");
+    advice.push("🏃 Perfect for running, cycling, or walking");
+  }
+  
+  return { advice, safetyLevel, heatIndex: heatIndex.toFixed(1) };
+}
+
+function calculateHeatIndex(temp, humidity) {
+  // Simplified heat index calculation
+  const tempF = (temp * 9/5) + 32;
+  if (tempF < 80) return temp;
+  
+  const hi = -42.379 + 2.04901523 * tempF + 10.14333127 * humidity 
+    - 0.22475541 * tempF * humidity - 6.83783e-3 * tempF * tempF
+    - 5.481717e-2 * humidity * humidity + 1.22874e-3 * tempF * tempF * humidity
+    + 8.5282e-4 * tempF * humidity * humidity - 1.99e-6 * tempF * tempF * humidity * humidity;
+  
+  return (hi - 32) * 5/9; // Convert back to Celsius
+}
+
+// Pet comfort advisor
+function getPetComfortAdvice(temp, humidity) {
+  const advice = [];
+  
+  if (temp > 26) {
+    advice.push("🐕 Dogs need extra water and shade");
+    advice.push("🐾 Avoid hot pavement - check with hand");
+    advice.push("❄️ Consider cooling mats for pets");
+  }
+  
+  if (temp < 5) {
+    advice.push("🧥 Small/short-haired pets need sweaters");
+    advice.push("🏠 Limit outdoor time for cats");
+    advice.push("🔥 Provide warm bedding");
+  }
+  
+  if (humidity > 80) {
+    advice.push("🌬️ Ensure good ventilation for pet areas");
+    advice.push("💧 Monitor for excessive panting");
+  }
+  
+  return advice;
+}
+
+// Laundry advisor
+function getLaundryAdvice(temp, humidity, windSpeed) {
+  const advice = [];
+  
+  if (humidity < 50 && temp > 20 && windSpeed > 3) {
+    advice.push("👕 Perfect drying conditions!");
+    advice.push("⏰ Clothes will dry in 2-4 hours");
+  } else if (humidity > 80) {
+    advice.push("🏠 Use indoor drying or dryer");
+    advice.push("⚠️ Outdoor drying may take 8+ hours");
+  } else if (temp < 10) {
+    advice.push("❄️ Clothes may freeze - use heated indoor space");
+  } else {
+    advice.push("⏰ Normal drying time: 4-6 hours");
+  }
+  
+  return advice;
+}
+
+// Plant care advisor
+function getPlantCareAdvice(temp, humidity, selectedPlants = []) {
+  const advice = [];
+  
+  selectedPlants.forEach(plant => {
+    const plantInfo = plantDatabase[plant];
+    if (!plantInfo) return;
+    
+    if (temp < plantInfo.minTemp) {
+      advice.push(`🌱 ${plant}: Too cold! Bring indoors or cover`);
+    } else if (temp > plantInfo.maxTemp) {
+      advice.push(`🌱 ${plant}: Too hot! Provide shade and extra water`);
+    } else {
+      advice.push(`🌱 ${plant}: Good temperature conditions`);
+    }
+    
+    if (humidity < 40) {
+      advice.push(`💧 ${plant}: Low humidity - mist leaves or use humidifier`);
+    }
+  });
+  
+  return advice;
+}
+
+// Air quality predictor (based on weather conditions)
+function getAirQualityPrediction(temp, humidity, pressure, windSpeed) {
+  let quality = "Good";
+  let score = 80;
+  const factors = [];
+  
+  // High pressure + low wind = pollutant buildup
+  if (pressure > 1020 && windSpeed < 2) {
+    score -= 20;
+    factors.push("🏭 High pressure + low wind may trap pollutants");
+  }
+  
+  // High humidity can worsen air quality
+  if (humidity > 80) {
+    score -= 10;
+    factors.push("💧 High humidity may worsen air quality");
+  }
+  
+  // Temperature inversions
+  if (temp < 15 && pressure > 1015) {
+    score -= 15;
+    factors.push("🌫️ Cold + high pressure may create smog");
+  }
+  
+  if (score < 30) quality = "Poor";
+  else if (score < 50) quality = "Moderate";
+  else if (score < 70) quality = "Fair";
+  
+  return { quality, score, factors };
+}
+
+// Load existing functions (keeping all previous functionality)
 async function loadSensorData() {
   try {
     const response = await fetch('./sensors.json');
@@ -30,7 +289,6 @@ async function loadSensorData() {
   }
 }
 
-// Function to generate demo data (last fallback)
 function generateDemoData() {
   console.log('Using generated demo data');
   const data = [];
@@ -56,7 +314,6 @@ function generateDemoData() {
   return data;
 }
 
-// Function to search for location coordinates
 async function searchLocation(locationName) {
   try {
     const response = await fetch(
@@ -78,10 +335,8 @@ async function searchLocation(locationName) {
   return [];
 }
 
-// Function to fetch real weather data
 async function fetchRealWeatherData(lat, lon, locationName = null) {
   try {
-    // Try OneCall API 3.0 first (paid subscription)
     try {
       const onecallResponse = await fetch(
         `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&exclude=minutely,alerts&appid=${API_KEY}&units=metric`
@@ -92,10 +347,8 @@ async function fetchRealWeatherData(lat, lon, locationName = null) {
         console.log('OneCall API Response:', onecallData);
         
         const currentTemp = Math.round(onecallData.current.temp * 10) / 10;
-        console.log('Current temperature:', currentTemp);
         console.log('Using OneCall API 3.0 data - Temperature:', `${currentTemp}°C`);
         
-        // Generate historical data based on current temperature
         const data = [];
         const now = new Date();
         
@@ -121,7 +374,6 @@ async function fetchRealWeatherData(lat, lon, locationName = null) {
       console.log('OneCall API not available, trying Current Weather API...');
     }
     
-    // Fallback to Current Weather API (free)
     const response = await fetch(
       `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
     );
@@ -134,10 +386,8 @@ async function fetchRealWeatherData(lat, lon, locationName = null) {
     console.log('API Response:', weatherData);
     
     const currentTemp = Math.round(weatherData.main.temp * 10) / 10;
-    console.log('Current temperature:', currentTemp);
     console.log('Using Current Weather API data - Temperature:', `${currentTemp}°C`);
     
-    // Generate historical data based on current temperature
     const data = [];
     const now = new Date();
     
@@ -162,20 +412,17 @@ async function fetchRealWeatherData(lat, lon, locationName = null) {
   } catch (error) {
     console.error('Error fetching weather data:', error);
     
-    // Try sensors.json as fallback
     const sensorData = await loadSensorData();
     if (sensorData) {
       console.log('Using sensor data from JSON file as fallback');
       return sensorData;
     }
     
-    // Final fallback: generate random demo data
     console.log('API failed and no sensor data available, using demo data');
     return generateDemoData();
   }
 }
 
-// Function to get user location
 function getUserLocation() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
@@ -200,7 +447,6 @@ function getUserLocation() {
   });
 }
 
-// Function to get location name from coordinates
 async function getLocationName(lat, lon) {
   try {
     const response = await fetch(
@@ -221,14 +467,12 @@ async function getLocationName(lat, lon) {
   return 'Unknown Location';
 }
 
-// Notification System
 function showNotification(title, message, type = 'info') {
-  // Check if notifications are enabled and not shown recently
   const now = Date.now();
   const key = `${title}_${type}`;
   
   if (lastNotificationTime[key] && (now - lastNotificationTime[key]) < 300000) {
-    return; // Don't show same notification within 5 minutes
+    return;
   }
   
   lastNotificationTime[key] = now;
@@ -245,7 +489,6 @@ function showNotification(title, message, type = 'info') {
   
   document.body.appendChild(notification);
   
-  // Auto remove after 8 seconds
   setTimeout(() => {
     if (notification.parentElement) {
       notification.remove();
@@ -253,14 +496,12 @@ function showNotification(title, message, type = 'info') {
   }, 8000);
 }
 
-// Function to check and send notifications
 function checkAndNotify(data) {
   const latestData = data[data.length - 1];
   const temp = latestData.temperature;
   const preferredTemp = userSettings.preferredTemp;
   const tempDiff = temp - preferredTemp;
   
-  // Temperature alerts - more sensitive notifications
   if (userSettings.tempAlerts) {
     if (temp > preferredTemp) {
       showNotification(
@@ -274,53 +515,10 @@ function checkAndNotify(data) {
         `Current temperature is ${temp}°C, which is ${Math.abs(tempDiff).toFixed(1)}°C below your preferred ${preferredTemp}°C. Consider warming up!`,
         'warning'
       );
-    } else if (Math.abs(tempDiff) <= 2) {
-      showNotification(
-        '✅ Perfect Temperature!',
-        `Current temperature (${temp}°C) is very close to your preference (${preferredTemp}°C). Enjoy the comfort!`,
-        'info'
-      );
-    }
-  }
-  
-  // Comfort recommendations
-  if (userSettings.comfortAlerts) {
-    if (tempDiff > 5) {
-      showNotification(
-        '👕 Clothing Suggestion',
-        'It\'s warmer than you prefer. Wear light, breathable clothing and stay in shade.',
-        'info'
-      );
-    } else if (tempDiff < -5) {
-      showNotification(
-        '🧥 Clothing Suggestion',
-        'It\'s cooler than you prefer. Consider wearing a jacket or warm layers.',
-        'info'
-      );
-    }
-  }
-  
-  // Weather warnings
-  if (userSettings.weatherAlerts) {
-    if (latestData.humidity > 80) {
-      showNotification(
-        '💧 High Humidity Warning',
-        'Very high humidity detected. Ensure good ventilation and stay hydrated.',
-        'warning'
-      );
-    }
-    
-    if (latestData.windSpeed > 8) {
-      showNotification(
-        '💨 Windy Conditions',
-        'Strong winds detected. Be cautious if going outside.',
-        'warning'
-      );
     }
   }
 }
 
-// Function to create or update the chart
 function createChart(data) {
   const ctx = document.getElementById('temperatureChart').getContext('2d');
   
@@ -389,7 +587,6 @@ function createChart(data) {
   });
 }
 
-// Function to get clothing suggestions
 function getClothingSuggestion(temp, preferredTemp) {
   const tempDiff = temp - preferredTemp;
   
@@ -438,12 +635,18 @@ function getClothingSuggestion(temp, preferredTemp) {
   }
 }
 
-// Function to update data cards
 function updateDataCards(data) {
   const latestData = data[data.length - 1];
   const clothingSuggestion = getClothingSuggestion(latestData.temperature, userSettings.preferredTemp);
+  const energyData = calculateHeatingCoolingCost(latestData.temperature, userSettings.preferredTemp, userSettings.houseSize || 100);
+  const sleepData = getSleepQualityPrediction(latestData.temperature, latestData.humidity, latestData.pressure);
+  const exerciseData = getExerciseAdvice(latestData.temperature, latestData.humidity, latestData.windSpeed);
+  const airQualityData = getAirQualityPrediction(latestData.temperature, latestData.humidity, latestData.pressure, latestData.windSpeed);
+  const foodAdvice = getFoodStorageAdvice(latestData.temperature, latestData.humidity);
+  const petAdvice = getPetComfortAdvice(latestData.temperature, latestData.humidity);
+  const laundryAdvice = getLaundryAdvice(latestData.temperature, latestData.humidity, latestData.windSpeed);
+  const plantAdvice = getPlantCareAdvice(latestData.temperature, latestData.humidity, userSettings.plants || []);
   
-  // Temperature recommendation logic based on user preference
   let tempRecommendation = '';
   let tempIcon = '';
   let tempClass = '';
@@ -476,7 +679,6 @@ function updateDataCards(data) {
     tempClass = 'very-hot';
   }
   
-  // Humidity recommendation
   let humidityRecommendation = '';
   let humidityIcon = '';
   
@@ -503,6 +705,55 @@ function updateDataCards(data) {
       </div>
     </div>
     
+    <div class="data-card energy-card">
+      <div class="data-icon">⚡</div>
+      <div class="data-content">
+        <h3>Energy Cost Estimate</h3>
+        <div class="data-value">₹${energyData.daily}/day</div>
+        <div class="data-recommendation">${energyData.recommendation}</div>
+        <div class="data-time">${energyData.energyKwh} kWh needed</div>
+      </div>
+    </div>
+    
+    <div class="data-card sleep-card">
+      <div class="data-icon">😴</div>
+      <div class="data-content">
+        <h3>Sleep Quality Prediction</h3>
+        <div class="data-value">${sleepData.quality}</div>
+        <div class="data-recommendation">${sleepData.issues.slice(0,2).join(', ')}</div>
+        <div class="data-time">Score: ${sleepData.score}/100</div>
+      </div>
+    </div>
+    
+    <div class="data-card exercise-card">
+      <div class="data-icon">🏃</div>
+      <div class="data-content">
+        <h3>Exercise Safety</h3>
+        <div class="data-value">${exerciseData.safetyLevel.toUpperCase()}</div>
+        <div class="data-recommendation">${exerciseData.advice.slice(0,2).join(', ')}</div>
+        <div class="data-time">Heat Index: ${exerciseData.heatIndex}°C</div>
+      </div>
+    </div>
+    
+    <div class="data-card air-quality-card">
+      <div class="data-icon">🌬️</div>
+      <div class="data-content">
+        <h3>Air Quality Forecast</h3>
+        <div class="data-value">${airQualityData.quality}</div>
+        <div class="data-recommendation">${airQualityData.factors.slice(0,1).join('')}</div>
+        <div class="data-time">Score: ${airQualityData.score}/100</div>
+      </div>
+    </div>
+    
+    <div class="data-card food-card">
+      <div class="data-icon">🍎</div>
+      <div class="data-content">
+        <h3>Food Storage Tips</h3>
+        <div class="data-value">${foodAdvice.length} tips</div>
+        <div class="data-recommendation">${foodAdvice.slice(0,2).join(', ')}</div>
+      </div>
+    </div>
+    
     <div class="data-card clothing-card">
       <div class="data-icon">${clothingSuggestion.icon}</div>
       <div class="data-content">
@@ -521,30 +772,28 @@ function updateDataCards(data) {
       </div>
     </div>
     
-    <div class="data-card pressure-card">
-      <div class="data-icon">📊</div>
+    <div class="data-card pet-card">
+      <div class="data-icon">🐕</div>
       <div class="data-content">
-        <h3>Pressure</h3>
-        <div class="data-value">${latestData.pressure} hPa</div>
-        <div class="data-recommendation">Atmospheric pressure reading</div>
+        <h3>Pet Care</h3>
+        <div class="data-value">${petAdvice.length} tips</div>
+        <div class="data-recommendation">${petAdvice.slice(0,2).join(', ')}</div>
       </div>
     </div>
     
-    <div class="data-card wind-card">
-      <div class="data-icon">💨</div>
+    <div class="data-card laundry-card">
+      <div class="data-icon">👕</div>
       <div class="data-content">
-        <h3>Wind Speed</h3>
-        <div class="data-value">${latestData.windSpeed.toFixed(1)} m/s</div>
-        <div class="data-recommendation">Current wind conditions</div>
+        <h3>Laundry Conditions</h3>
+        <div class="data-value">${laundryAdvice.length} tips</div>
+        <div class="data-recommendation">${laundryAdvice.slice(0,2).join(', ')}</div>
       </div>
     </div>
   `;
   
-  // Check for notifications
   checkAndNotify(data);
 }
 
-// Settings management
 let userSettings = {
   preferredTemp: 22,
   tempAlerts: true,
@@ -553,10 +802,11 @@ let userSettings = {
   useManualLocation: false,
   manualLocationName: '',
   manualLat: null,
-  manualLon: null
+  manualLon: null,
+  houseSize: 100,
+  plants: []
 };
 
-// Load settings from localStorage
 function loadSettings() {
   const saved = localStorage.getItem('temperatureSettings');
   if (saved) {
@@ -564,12 +814,10 @@ function loadSettings() {
   }
 }
 
-// Save settings to localStorage
 function saveSettings() {
   localStorage.setItem('temperatureSettings', JSON.stringify(userSettings));
 }
 
-// Apply settings to UI
 function applySettings() {
   document.getElementById('temp-alerts').checked = userSettings.tempAlerts;
   document.getElementById('comfort-alerts').checked = userSettings.comfortAlerts;
@@ -579,41 +827,63 @@ function applySettings() {
   document.getElementById('location-name-input').value = userSettings.manualLocationName;
   document.getElementById('latitude-input').value = userSettings.manualLat || '';
   document.getElementById('longitude-input').value = userSettings.manualLon || '';
+  document.getElementById('house-size').value = userSettings.houseSize || 100;
   
-  // Toggle manual location inputs
   const manualInputs = document.getElementById('manual-location-inputs');
   manualInputs.style.display = userSettings.useManualLocation ? 'block' : 'none';
 }
 
-// Location search functionality
+let searchTimeout;
+
 async function handleLocationSearch() {
   const searchTerm = document.getElementById('location-search').value.trim();
-  if (!searchTerm) return;
-  
-  const results = await searchLocation(searchTerm);
-  const resultsContainer = document.getElementById('search-results');
-  
-  if (results.length === 0) {
-    resultsContainer.innerHTML = '<div class="search-result">No locations found</div>';
-    resultsContainer.style.display = 'block';
+  if (!searchTerm) {
+    document.getElementById('search-results').style.display = 'none';
     return;
   }
   
-  resultsContainer.innerHTML = results.map(location => 
-    `<div class="search-result" onclick="selectLocation(${location.lat}, ${location.lon}, '${location.name}')">
-      📍 ${location.name}${location.state ? `, ${location.state}` : ''}
-    </div>`
-  ).join('');
+  // Clear previous timeout
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+  }
   
-  resultsContainer.style.display = 'block';
+  // Add debouncing to avoid too many API calls
+  searchTimeout = setTimeout(async () => {
+    const results = await searchLocation(searchTerm);
+    const resultsContainer = document.getElementById('search-results');
+    
+    if (results.length === 0) {
+      resultsContainer.innerHTML = '<div class="search-result">No locations found</div>';
+      resultsContainer.style.display = 'block';
+      return;
+    }
+    
+    resultsContainer.innerHTML = results.map(location => 
+      `<div class="search-result" onclick="selectLocation(${location.lat}, ${location.lon}, '${location.name}')">
+        📍 ${location.name}${location.state ? `, ${location.state}` : ''}
+      </div>`
+    ).join('');
+    
+    resultsContainer.style.display = 'block';
+  }, 300); // Wait 300ms after user stops typing
 }
 
-// Select location from search results
+// Function to handle search input in real-time
+function handleSearchInput() {
+  const searchInput = document.getElementById('location-search');
+  const searchTerm = searchInput.value.trim();
+  
+  if (searchTerm.length >= 2) {
+    handleLocationSearch();
+  } else {
+    document.getElementById('search-results').style.display = 'none';
+  }
+}
+
 async function selectLocation(lat, lon, name) {
   document.getElementById('search-results').style.display = 'none';
   document.getElementById('location-search').value = name;
   
-  // Update data with selected location
   const data = await fetchRealWeatherData(lat, lon, name);
   temperatureData = data;
   
@@ -623,13 +893,11 @@ async function selectLocation(lat, lon, name) {
   createChart(data);
   updateDataCards(data);
   
-  // Start regular updates for the new location
   if (data[0].sensorId === 'LIVE_WEATHER') {
     startRegularUpdates(lat, lon, name);
   }
 }
 
-// Function to ask for location permission
 async function askForLocation() {
   try {
     const position = await getUserLocation();
@@ -645,7 +913,6 @@ async function askForLocation() {
   }
 }
 
-// Main initialization function
 async function initializeDashboard() {
   loadSettings();
   
@@ -655,7 +922,6 @@ async function initializeDashboard() {
     let position;
     
     if (userSettings.useManualLocation && userSettings.manualLat && userSettings.manualLon) {
-      // Use manual location
       position = {
         lat: userSettings.manualLat,
         lon: userSettings.manualLon
@@ -684,18 +950,14 @@ async function initializeDashboard() {
       }
     }
     
-    // Update location info
     document.getElementById('location-name').textContent = locationName;
     document.getElementById('sensor-id').textContent = data[0].sensorId;
     
-    // Store data globally
     temperatureData = data;
     
-    // Create chart and update cards
     createChart(data);
     updateDataCards(data);
     
-    // Start regular updates if using real API data
     if (data[0].sensorId === 'LIVE_WEATHER' && position) {
       startRegularUpdates(position.lat, position.lon, locationName);
     }
@@ -714,9 +976,7 @@ async function initializeDashboard() {
   }
 }
 
-// Function to start regular updates
 function startRegularUpdates(lat, lon, locationName) {
-  // Clear any existing intervals
   if (window.updateInterval) {
     clearInterval(window.updateInterval);
   }
@@ -726,13 +986,11 @@ function startRegularUpdates(lat, lon, locationName) {
       const currentData = await fetchRealWeatherData(lat, lon, locationName);
       const newData = currentData[currentData.length - 1];
       
-      // Add new data point and remove oldest if we have more than 8 points
       temperatureData.push(newData);
       if (temperatureData.length > 8) {
         temperatureData.shift();
       }
       
-      // Update chart and cards
       createChart(temperatureData);
       updateDataCards(temperatureData);
       
@@ -749,10 +1007,9 @@ function startRegularUpdates(lat, lon, locationName) {
     }
     
     console.log('Updated at:', new Date().toLocaleString());
-  }, 60000); // Update every 1 minute
+  }, 60000);
 }
 
-// Settings event handlers
 function toggleSettings() {
   const panel = document.getElementById('settings-panel');
   panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
@@ -764,8 +1021,29 @@ function toggleManualLocation() {
   manualInputs.style.display = isChecked ? 'block' : 'none';
 }
 
+function addPlant() {
+  const plantSelect = document.getElementById('plant-select');
+  const selectedPlant = plantSelect.value;
+  
+  if (selectedPlant && !userSettings.plants.includes(selectedPlant)) {
+    userSettings.plants.push(selectedPlant);
+    updatePlantsList();
+  }
+}
+
+function removePlant(plant) {
+  userSettings.plants = userSettings.plants.filter(p => p !== plant);
+  updatePlantsList();
+}
+
+function updatePlantsList() {
+  const container = document.getElementById('plants-list');
+  container.innerHTML = userSettings.plants.map(plant => 
+    `<span class="plant-tag">${plant} <button onclick="removePlant('${plant}')">×</button></span>`
+  ).join('');
+}
+
 function saveUserSettings() {
-  // Get values from form
   userSettings.tempAlerts = document.getElementById('temp-alerts').checked;
   userSettings.comfortAlerts = document.getElementById('comfort-alerts').checked;
   userSettings.weatherAlerts = document.getElementById('weather-alerts').checked;
@@ -774,34 +1052,36 @@ function saveUserSettings() {
   userSettings.manualLocationName = document.getElementById('location-name-input').value;
   userSettings.manualLat = parseFloat(document.getElementById('latitude-input').value) || null;
   userSettings.manualLon = parseFloat(document.getElementById('longitude-input').value) || null;
+  userSettings.houseSize = parseInt(document.getElementById('house-size').value) || 100;
   
-  // Save to localStorage
   saveSettings();
   
-  // Close settings panel
   document.getElementById('settings-panel').style.display = 'none';
   
-  // Show success notification
   showNotification(
     '✅ Settings Saved',
     'Your preferences have been saved successfully!',
     'info'
   );
   
-  // Reinitialize dashboard with new settings
   setTimeout(() => {
     initializeDashboard();
   }, 1000);
 }
 
-// Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
   initializeDashboard();
   setTimeout(applySettings, 100);
   
-  // Hide search results when clicking outside
   document.addEventListener('click', (e) => {
     if (!e.target.closest('#location-search-container')) {
+      document.getElementById('search-results').style.display = 'none';
+    }
+  });
+  
+  // Add escape key handler to hide search results
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
       document.getElementById('search-results').style.display = 'none';
     }
   });
