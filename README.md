@@ -28,7 +28,7 @@ An interactive, real-time weather dashboard that provides current weather condit
 
 ## 📸 Screenshots
 
-> *(Add screenshots here – drag and drop into GitHub editor or upload manually)*
+![alt text](image.png)
 
 ---
 
